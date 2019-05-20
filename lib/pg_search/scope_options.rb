@@ -16,11 +16,15 @@ module PgSearch
       scope = include_table_aliasing_for_rank(scope)
       rank_table_alias = scope.pg_search_rank_table_alias(:include_counter)
 
-      scope
+      scope = scope
         .joins(rank_join(rank_table_alias))
         .order(Arel.sql("#{rank_table_alias}.rank DESC, #{order_within_rank}"))
         .extend(WithPgSearchRank)
         .extend(WithPgSearchHighlight[feature_for(:tsearch)])
+
+      return scope unless config.with_pg_search_rank?
+
+      scope.with_pg_search_rank
     end
 
     module WithPgSearchHighlight
@@ -88,15 +92,24 @@ module PgSearch
         .select("#{rank} AS rank")
         .joins(subquery_join)
         .where(conditions)
+        .where(filter)
         .limit(nil)
         .offset(nil)
     end
 
     def conditions
-      config.features
-            .reject { |_feature_name, feature_options| feature_options && feature_options[:sort_only] }
-            .map { |feature_name, _feature_options| feature_for(feature_name).conditions }
-            .inject { |accumulator, expression| Arel::Nodes::Or.new(accumulator, expression) }
+      Arel::Nodes::Grouping.new(
+        config.features
+              .reject { |_feature_name, feature_options| feature_options && feature_options[:sort_only] }
+              .map { |feature_name, _feature_options| feature_for(feature_name).conditions }
+              .inject { |accumulator, expression| Arel::Nodes::Or.new(accumulator, expression) }
+      )
+    end
+
+    def filter
+      return '' if config.filter.nil?
+
+      Arel::Nodes::Grouping.new(config.filter)
     end
 
     def order_within_rank
