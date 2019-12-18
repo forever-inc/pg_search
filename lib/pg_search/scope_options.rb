@@ -91,6 +91,7 @@ module PgSearch
         .select("#{primary_key} AS pg_search_id")
         .select("#{rank} AS rank")
         .joins(subquery_join)
+        .joins(filter_associations)
         .where(conditions)
         .where(filter)
         .limit(nil)
@@ -110,6 +111,12 @@ module PgSearch
       return '' if config.filter.nil?
 
       Arel::Nodes::Grouping.new(config.filter)
+    end
+
+    def filter_associations
+      return '' if config.filter_associations.nil?
+
+      config.filter_associations
     end
 
     def order_within_rank

@@ -79,6 +79,10 @@ module PgSearch
       options[:filter]
     end
 
+    def filter_associations
+      options[:filter_associations]
+    end
+
     def with_pg_search_rank?
       options[:with_pg_search_rank] == true
     end
@@ -92,7 +96,7 @@ module PgSearch
     end
 
     VALID_KEYS = %w[
-      against ranked_by ignoring using query associated_against order_within_rank filter with_pg_search_rank
+      against ranked_by ignoring using query associated_against order_within_rank filter filter_associations with_pg_search_rank
     ].map(&:to_sym)
 
     VALID_VALUES = {
