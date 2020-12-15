@@ -54,7 +54,7 @@ module PgSearch
       def with_pg_search_rank
         scope = self
         scope = scope.select("#{table_name}.*") unless scope.select_values.any?
-        scope.select("#{pg_search_rank_table_alias}.rank AS pg_search_rank")
+        scope.select("#{pg_search_rank_table_alias}.rank::numeric AS pg_search_rank")
       end
     end
 
