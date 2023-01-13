@@ -4,7 +4,7 @@ module PgSearch
   module Features
     class Trigram < Feature
       def self.valid_options
-        super + %i[threshold word_similarity]
+        super + %i[threshold word_similarity coalesce]
       end
 
       def conditions
