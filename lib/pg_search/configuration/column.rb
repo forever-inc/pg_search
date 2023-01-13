@@ -19,8 +19,10 @@ module PgSearch
         "#{table_name}.#{column_name}"
       end
 
-      def to_sql
-        "coalesce(#{expression}::text, '')"
+      def to_sql(coalesce = true)
+        return "coalesce(#{expression}::text, '')" if coalesce
+
+        expression
       end
 
       private
