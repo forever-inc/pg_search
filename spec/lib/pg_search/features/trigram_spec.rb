@@ -48,6 +48,15 @@ describe PgSearch::Features::Trigram do
       end
     end
 
+    context "when coalesce is false" do
+      let(:options) { {coalesce: false} }
+
+      it "uses the bare columns" do
+        columns_sql = "#{Model.quoted_table_name}.\"name\" || ' ' || #{Model.quoted_table_name}.\"content\""
+        expect(feature.conditions.to_sql).to eq("('#{query}' % (#{columns_sql}))")
+      end
+    end
+
     context "when ignoring accents" do
       let(:ignore) { [:accents] }
 

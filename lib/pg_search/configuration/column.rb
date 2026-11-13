@@ -24,7 +24,12 @@ module PgSearch
 
       # Composable search expression cast to text, with NULL mapped to "".
       # Foreign columns use their derived search alias rather than the source.
-      def to_arel = coalesce_to_blank_string(cast_to_text(attribute))
+      # Pass coalesce = false to use the bare column, letting PostgreSQL use indexes.
+      def to_arel(coalesce = true)
+        return attribute unless coalesce
+
+        coalesce_to_blank_string(cast_to_text(attribute))
+      end
 
       private
 

@@ -23,7 +23,7 @@ module PgSearch
 
       def document
         space = Arel::Nodes.build_quoted(" ")
-        columns.map(&:to_arel).inject do |memo, col|
+        columns.map { |column| column.to_arel(options.fetch(:coalesce, true)) }.inject do |memo, col|
           Arel::Nodes::InfixOperation.new(
             "||",
             Arel::Nodes::InfixOperation.new("||", memo, space),

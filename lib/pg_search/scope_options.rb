@@ -17,12 +17,16 @@ module PgSearch
       rank_table_alias = scope.pg_search_rank_table_alias(include_counter: true)
       rank_subquery = subquery.arel.as(rank_table_alias)
 
-      scope
+      scope = scope
         .joins(rank_join(rank_subquery))
         .order(rank_subquery[:rank].desc)
         .order(order_within_rank)
         .extend(WithPgSearchRank)
         .extend(WithPgSearchHighlight[feature_for(:tsearch)])
+
+      return scope unless config.with_pg_search_rank?
+
+      scope.with_pg_search_rank
     end
 
     module WithPgSearchHighlight
@@ -51,7 +55,7 @@ module PgSearch
         scope = scope.select(arel_table[Arel.star]) if scope.select_values.empty?
         rank_table = arel_table.alias(pg_search_rank_table_alias)
         rank_column = Arel::Attributes::Attribute.new(rank_table, "rank")
-        scope.select(rank_column.as("pg_search_rank"))
+        scope.select(Arel::Nodes::NamedFunction.new("cast", [rank_column.as(Arel.sql("numeric"))]).as("pg_search_rank"))
       end
     end
 
@@ -84,6 +88,7 @@ module PgSearch
         .select(rank.as("rank"))
         .joins(subquery_join)
         .where(conditions)
+        .where(filter)
         .limit(nil)
         .offset(nil)
     end
@@ -96,7 +101,13 @@ module PgSearch
 
       return if expressions.empty?
 
-      Arel::Nodes::Or.new(expressions)
+      Arel::Nodes::Grouping.new(Arel::Nodes::Or.new(expressions))
+    end
+
+    def filter
+      return if config.filter.nil?
+
+      Arel::Nodes::Grouping.new(config.filter.is_a?(String) ? Arel.sql(config.filter) : config.filter)
     end
 
     def order_within_rank

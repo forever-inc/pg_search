@@ -439,6 +439,31 @@ describe "an Active Record model which includes PgSearch" do
         expect(results).to eq([winner, loser])
       end
 
+      it "applies :filter in the rank subquery and selects the rank with :with_pg_search_rank" do
+        ModelWithPgSearch.pg_search_scope :search_filtered,
+          against: :content, filter: "importance = 1", with_pg_search_rank: true
+        included = ModelWithPgSearch.create!(content: "foo", importance: 1)
+        ModelWithPgSearch.create!(content: "foo", importance: 2)
+
+        results = ModelWithPgSearch.search_filtered("foo")
+        expect(results).to eq([included])
+        expect(results.first.pg_search_rank).to be > 0
+      end
+
+      it "applies :filter to every feature when multiple features are used" do
+        ModelWithPgSearch.pg_search_scope :search_filtered_multi,
+          against: :content, using: %i[tsearch trigram], filter: "importance = 1"
+        included = ModelWithPgSearch.create!(content: "foo", importance: 1)
+        ModelWithPgSearch.create!(content: "foo", importance: 2)
+
+        expect(ModelWithPgSearch.search_filtered_multi("foo")).to eq([included])
+      end
+
+      it "casts the rank to numeric" do
+        sql = ModelWithPgSearch.search_content("foo").with_pg_search_rank.to_sql
+        expect(sql).to match(/cast\(.+\."rank" AS numeric\) AS pg_search_rank/)
+      end
+
       it "preserves column selection when with_pg_search_rank is chained after a select()" do
         ModelWithPgSearch.create!(title: "foo", content: "bar")
 
